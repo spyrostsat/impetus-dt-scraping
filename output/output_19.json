@@ -1,13 +1,13 @@
 {
     "city_name": "\u039f\u039b\u03a5\u039c\u03a0\u0399\u0391\u039a\u039f \u03a7\u03a9\u03a1\u0399\u039f",
-    "current_time": "14:40",
-    "temperature": "27 \u00b0C",
-    "wind_speed": "15 km/h",
+    "current_time": "17:40",
+    "temperature": "25 \u00b0C",
+    "wind_speed": "13 km/h",
     "beaufort": "3 Beaufort",
-    "humidity": "41%",
+    "humidity": "50%",
     "pressure": "1014 hPa",
-    "highest_daily_temperature": "27.4\u00b0C",
+    "highest_daily_temperature": "27.8\u00b0C",
     "lowest_daily_temperature": "15.4\u00b0C",
     "daily_rain": "0.0 mm",
-    "highest_daily_gust": "30.6 km/h"
+    "highest_daily_gust": "32.2 km/h"
 }
