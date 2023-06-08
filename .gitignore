@@ -1,5 +1,7 @@
 /run_cron.sh
 .idea
+/output
+/output/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
