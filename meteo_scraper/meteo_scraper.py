@@ -84,6 +84,8 @@ class MeteoScraper(webdriver.Chrome):
                 self.save_data_to_json(count, city_name, current_time, temperature, wind_speed, beaufort, humidity, pressure, highest_daily_temperature,
                                        lowest_daily_temperature, daily_rain, highest_daily_gust)
 
+                print(f"Completed {count+1} / 25")
+
             except Exception:
                 continue
 
