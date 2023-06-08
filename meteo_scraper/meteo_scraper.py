@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException
+from datetime import datetime
 import json
 import os
 
@@ -16,9 +17,38 @@ class MeteoScraper(webdriver.Chrome):
 
     total_ids = len(ids)
 
+    stations_locations = [
+        [23.72238872883628, 37.891532268518801],
+        [23.85926241126208, 38.142993324527026],
+        [23.734946186509262, 37.97542982908729],
+        [23.931370861085497, 37.73586981067058],
+        [23.589236161971428, 38.05860969744705],
+        [23.833675367859627, 38.05749118698577],
+        [23.803391552253487, 38.09769261031022],
+        [23.876904285954993, 38.13086798933955],
+        [23.74512581914925, 37.893796901977936],
+        [23.534845504826137, 38.04763426871179],
+        [23.324141442788175, 38.21737333919907],
+        [23.796193615420606, 38.23910991564784],
+        [23.500325481062106, 38.07319920659407],
+        [23.961350968451853, 38.15687413078601],
+        [23.932273726794193, 37.88280650362145],
+        [23.34292454848344, 37.994881264823890],
+        [23.418808398957765, 38.00283072694239],
+        [23.99175827837084, 37.733513852438335],
+        [23.78737950000078, 38.036245301040370],
+        [23.799770068617107, 38.08127325317486],
+        [23.720060644052666, 38.14648511057399],
+        [23.647197470075014, 37.94347523560283],
+        [23.593009744470322, 37.96574027277751],
+        [23.494194747455026, 37.96671997227759],
+        [23.916228454216906, 37.96367237254712],
+    ]
+
     url_first_part = "https://meteo.gr/cf.cfm?city_id="
 
     def __init__(self):
+        self.current_datetime = datetime.now().strftime("%Y-%m-%dT")
         # service = Service(ChromeDriverManager().install())
         options = Options()
         options.add_experimental_option("detach", True)  # this leaves the browser open even after the python script is finished
@@ -94,21 +124,37 @@ class MeteoScraper(webdriver.Chrome):
 
     def save_data_to_json(self, count, city_name, current_time, temperature, wind_speed, beaufort, humidity, pressure, highest_daily_temperature,
                           lowest_daily_temperature, daily_rain, highest_daily_gust):
-        items_to_return = {
-            'city_name': city_name,
-            'current_time': current_time,
-            'temperature': temperature,
-            'wind_speed': wind_speed,
-            'beaufort': beaufort,
-            'humidity': humidity,
-            'pressure': pressure,
-            'highest_daily_temperature': highest_daily_temperature,
-            'lowest_daily_temperature': lowest_daily_temperature,
-            'daily_rain': daily_rain,
-            'highest_daily_gust': highest_daily_gust
+
+        actual_time = self.current_datetime + current_time + ":00"
+
+        jsonData = {
+            "id": f"urn:ngsi-ld:WeatherObserved:Greece-Attica-WeatherObserved-{city_name}-{actual_time}",
+            "type": "WeatherObserved",
+            "address": {
+                "addressLocality": f"{city_name}",
+                "addressCountry": "GR"
+            },
+            "dataProvider": "METEO",
+            "source": "https://meteo.gr/",
+            "stationName": city_name,
+            "location": {
+                "type": "Point",
+                "coordinates": MeteoScraper.stations_locations[count]
+            },
+            "dateObserved": actual_time,
+            "temperature": temperature,
+            "windSpeed": wind_speed,
+            "beaufort": beaufort,
+            "humidity": humidity,
+            "atmosphericPressure": pressure,
+            "highest_daily_temperature": highest_daily_temperature,
+            "lowest_daily_temperature": lowest_daily_temperature,
+            "precipitation": daily_rain,
+            "highest_daily_gust": highest_daily_gust
         }
 
-        items_to_return = json.dumps(items_to_return, indent=4)
+
+        jsonData = json.dumps(jsonData, indent=4)
 
         current_directory = os.getcwd()
         new_directory = os.path.join(current_directory, "output")
@@ -119,5 +165,5 @@ class MeteoScraper(webdriver.Chrome):
         file_path = os.path.join(new_directory, f"output_{str(count)}.json")
 
         with open(file_path, "w") as f:
-            f.write(items_to_return)
+            f.write(jsonData)
             f.write("\n")
