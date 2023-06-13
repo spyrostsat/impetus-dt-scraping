@@ -82,39 +82,56 @@ class MeteoScraper(webdriver.Chrome):
                 current_time = current_time_element.get_attribute("innerHTML").strip()
 
                 temperature_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'newtemp')]")
+                temperature = (temperature_element.get_attribute("innerHTML").split("<")[0]).strip()
+
                 temperature_unit_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'newtemp')]/span[contains(@class, 'newcelc')]")
-                temperature_unit = temperature_unit_element.get_attribute("innerHTML")
-                temperature = temperature_element.get_attribute("innerHTML").split("<")[0]
-                temperature =  (temperature + " " + temperature_unit).strip()
+                temperature_unit = (temperature_unit_element.get_attribute("innerHTML")).strip()
 
                 wind_speed_element = self.find_elements("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'windnr')]")[0]
+                wind_speed = wind_speed_element.get_attribute("innerHTML").split("<")[0].strip()
+
                 wind_speed_unit_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'windnr')]/span")
-                wind_speed = wind_speed_element.get_attribute("innerHTML").split("<")[0].strip() + " " + wind_speed_unit_element.get_attribute("innerHTML").strip()
+                wind_speed_unit = wind_speed_unit_element.get_attribute("innerHTML").strip()
 
                 beaufort_element = self.find_elements("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'windnr')]")[1]
-                beaufort = beaufort_element.get_attribute("innerHTML").strip()
+                beaufort_all = beaufort_element.get_attribute("innerHTML").strip()
+                beaufort_all = beaufort_all.split(" ")
+                beaufort = beaufort_all[0]
+                beaufort_unit = beaufort_all[-1]
 
                 humidity_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'ygrasia')]")
                 humidity = humidity_element.get_attribute("innerHTML").split(":")[-1].strip()
+                humidity = humidity.split("%")[0]
+                humidity_unit = "%"
 
                 pressure_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'piesi')]")
                 pressure_unit_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'piesi')]/span")
-                pressure = pressure_element.get_attribute("innerHTML").split("<")[0].strip().split(":")[-1].strip() + " " + pressure_unit_element.get_attribute("innerHTML").split(";")[-1]
+                pressure = pressure_element.get_attribute("innerHTML").split("<")[0].strip().split(":")[-1].strip()
+                pressure_unit = pressure_unit_element.get_attribute("innerHTML").split(";")[-1]
 
                 highest_daily_temperature_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[0]
-                highest_daily_temperature = highest_daily_temperature_element.get_attribute("innerHTML").split(" ")[-1].split(">")[-2].split("<")[0].strip()
+                highest_daily_temperature_all = highest_daily_temperature_element.get_attribute("innerHTML").split(" ")[-1].split(">")[-2].split("<")[0].strip()
+                highest_daily_temperature_all = highest_daily_temperature_all.split("°")
+                highest_daily_temperature = highest_daily_temperature_all[0]
+                highest_daily_temperature_unit = highest_daily_temperature_all[-1]
 
                 lowest_daily_temperature_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[1]
-                lowest_daily_temperature = lowest_daily_temperature_element.get_attribute("innerHTML").split(" ")[-1].split(">")[-2].split("<")[0].strip()
+                lowest_daily_temperature_all = lowest_daily_temperature_element.get_attribute("innerHTML").split(" ")[-1].split(">")[-2].split("<")[0].strip()
+                lowest_daily_temperature_all = lowest_daily_temperature_all.split("°")
+                lowest_daily_temperature = lowest_daily_temperature_all[0]
+                lowest_daily_temperature_unit = lowest_daily_temperature_all[-1]
 
                 daily_rain_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[2]
-                daily_rain = daily_rain_element.get_attribute("innerHTML").split("<")[0].split("\n")[-1].strip() + " mm"
+                daily_rain = daily_rain_element.get_attribute("innerHTML").split("<")[0].split("\n")[-1].strip()
+                daily_rain_unit = "mm"
 
                 highest_daily_gust_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[3]
-                highest_daily_gust = highest_daily_gust_element.get_attribute("innerHTML").split("<span")[1].split("\n")[-1].strip() + " km/h"
+                highest_daily_gust = highest_daily_gust_element.get_attribute("innerHTML").split("<span")[1].split("\n")[-1].strip()
+                highest_daily_gust_unit = "km/h"
 
-                self.save_data_to_json(count, city_name, current_time, temperature, wind_speed, beaufort, humidity, pressure, highest_daily_temperature,
-                                       lowest_daily_temperature, daily_rain, highest_daily_gust)
+                self.save_data_to_json(count, city_name, current_time, temperature, temperature_unit, wind_speed, wind_speed_unit, beaufort, beaufort_unit,
+                                       humidity, humidity_unit, pressure, pressure_unit, highest_daily_temperature, highest_daily_temperature_unit,
+                                       lowest_daily_temperature, lowest_daily_temperature_unit, daily_rain, daily_rain_unit, highest_daily_gust, highest_daily_gust_unit)
 
                 print(f"Completed: {count+1} / {MeteoScraper.total_ids}") # info
 
@@ -122,13 +139,14 @@ class MeteoScraper(webdriver.Chrome):
                 continue
 
 
-    def save_data_to_json(self, count, city_name, current_time, temperature, wind_speed, beaufort, humidity, pressure, highest_daily_temperature,
-                          lowest_daily_temperature, daily_rain, highest_daily_gust):
+    def save_data_to_json(self, count, city_name, current_time, temperature, temperature_unit, wind_speed, wind_speed_unit, beaufort, beaufort_unit,
+                            humidity, humidity_unit, pressure, pressure_unit, highest_daily_temperature, highest_daily_temperature_unit,
+                            lowest_daily_temperature, lowest_daily_temperature_unit, daily_rain, daily_rain_unit, highest_daily_gust, highest_daily_gust_unit):
 
         actual_time = self.current_datetime + current_time + ":00"
 
         jsonData = {
-            "id": f"urn:ngsi-ld:WeatherObserved:Greece-Attica-WeatherObserved-{city_name}-{actual_time}",
+            "id": f"urn:ngsi-ld:WeatherObserved:Greece-Attica-WeatherObserved-{city_name}",
             "type": "WeatherObserved",
             "address": {
                 "addressLocality": f"{city_name}",
@@ -142,17 +160,30 @@ class MeteoScraper(webdriver.Chrome):
                 "coordinates": MeteoScraper.stations_locations[count]
             },
             "dateObserved": actual_time,
-            "temperature": temperature,
-            "windSpeed": wind_speed,
-            "beaufort": beaufort,
-            "humidity": humidity,
-            "atmosphericPressure": pressure,
-            "highest_daily_temperature": highest_daily_temperature,
-            "lowest_daily_temperature": lowest_daily_temperature,
-            "precipitation": daily_rain,
-            "highest_daily_gust": highest_daily_gust
+            "temperature": int(temperature),
+            "temperatureUnit": temperature_unit,
+            "windSpeed": int(wind_speed),
+            "windSpeedUnit": wind_speed_unit,
+            "beaufort": int(beaufort),
+            "beaufortUnit": beaufort_unit,
+            "humidity": int(humidity),
+            "humidityUnit": humidity_unit,
+            "atmosphericPressure": int(pressure),
+            "atmosphericPressureUnit": pressure_unit,
+            "highestDailyTemperature": float(highest_daily_temperature),
+            "highestDailyTemperatureUnit": highest_daily_temperature_unit,
+            "lowestDailyTemperature": float(lowest_daily_temperature),
+            "lowestDailyTemperatureUnit": lowest_daily_temperature_unit,
+            "precipitation": float(daily_rain),
+            "precipitationUnit": daily_rain_unit,
+            "highestDailyGust": float(highest_daily_gust),
+            "highestDailyGustUnit": highest_daily_gust_unit,
+            "@context": [
+                "iudx:EnvWeather",
+                "https://smart-data-models.github.io/dataModel.Weather/context.jsonld",
+                "https://raw.githubusercontent.com/smart-data-models/dataModel.Weather/master/context.jsonld"
+            ]
         }
-
 
         jsonData = json.dumps(jsonData, indent=4)
 
