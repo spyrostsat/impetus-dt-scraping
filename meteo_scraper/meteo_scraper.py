@@ -17,7 +17,7 @@ class MeteoScraper(webdriver.Chrome):
     my_col = my_db["meteo-log"]
 
     ids = ["28", "231", "12", "308", "255", "88", "86", "89", "261", "157", "155", "284",
-           "27", "310", "213", "156", "87", "29", "30", "238", "61", "128", "60", "191"]  # len(ids) = 25
+           "27", "310", "213", "156", "87", "29", "30", "238", "61", "128", "60", "191"]  # len(ids) = 24
 
     total_ids = len(ids)
 
@@ -29,7 +29,6 @@ class MeteoScraper(webdriver.Chrome):
         [23.589236161971428, 38.05860969744705],
         [23.833675367859627, 38.05749118698577],
         [23.803391552253487, 38.09769261031022],
-        [23.876904285954993, 38.13086798933955],
         [23.74512581914925, 37.893796901977936],
         [23.534845504826137, 38.04763426871179],
         [23.324141442788175, 38.21737333919907],
@@ -149,7 +148,7 @@ class MeteoScraper(webdriver.Chrome):
                                        humidity, humidity_unit, pressure, pressure_unit, highest_daily_temperature, highest_daily_temperature_unit,
                                        lowest_daily_temperature, lowest_daily_temperature_unit, daily_rain, daily_rain_unit, highest_daily_gust, highest_daily_gust_unit)
 
-                print(f"Completed: {count+1} / {MeteoScraper.total_ids}") # info
+                print(f"Completed (id={city_id}): {count+1} / {MeteoScraper.total_ids}") # info
 
             except Exception:
                 self.stations_not_working.append(city_id)
