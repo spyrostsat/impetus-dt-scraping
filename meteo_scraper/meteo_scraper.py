@@ -4,16 +4,20 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime
+from unidecode import unidecode
 import json
 import os
+import requests
+import pymongo
 
 
 class MeteoScraper(webdriver.Chrome):
+    my_client = pymongo.MongoClient("mongodb://localhost:27017/")
+    my_db = my_client["impetus-dev"]
+    my_col = my_db["meteo-log"]
 
-    ids = ["28", "231", "12", "308", "255", "88", "86", "231", "89", "261", "157", "155", "284",
+    ids = ["28", "231", "12", "308", "255", "88", "86", "89", "261", "157", "155", "284",
            "27", "310", "213", "156", "87", "29", "30", "238", "61", "128", "60", "191"]  # len(ids) = 25
-
-    # ids = ["28"]
 
     total_ids = len(ids)
 
@@ -48,6 +52,7 @@ class MeteoScraper(webdriver.Chrome):
     url_first_part = "https://meteo.gr/cf.cfm?city_id="
 
     def __init__(self):
+        self.stations_not_working = []
         self.current_datetime = datetime.now().strftime("%Y-%m-%dT")
         # service = Service(ChromeDriverManager().install())
         options = Options()
@@ -77,18 +82,22 @@ class MeteoScraper(webdriver.Chrome):
 
                 city_name_element = self.find_element("xpath", "//h1[contains(@class, 'cityname fl')]")
                 city_name = city_name_element.get_attribute("innerHTML").strip()
+                city_name = unidecode(city_name)
+                city_name = city_name.replace(" ", "_")
 
                 current_time_element = self.find_element("xpath", "//div[contains(@class, 'headernew')]//span[contains(@class, 'livetime')]")
                 current_time = current_time_element.get_attribute("innerHTML").strip()
 
                 temperature_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'newtemp')]")
                 temperature = (temperature_element.get_attribute("innerHTML").split("<")[0]).strip()
+                temperature = int(temperature)
 
                 temperature_unit_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'newtemp')]/span[contains(@class, 'newcelc')]")
                 temperature_unit = (temperature_unit_element.get_attribute("innerHTML")).strip()
 
                 wind_speed_element = self.find_elements("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'windnr')]")[0]
                 wind_speed = wind_speed_element.get_attribute("innerHTML").split("<")[0].strip()
+                wind_speed = int(wind_speed)
 
                 wind_speed_unit_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'windnr')]/span")
                 wind_speed_unit = wind_speed_unit_element.get_attribute("innerHTML").strip()
@@ -97,49 +106,57 @@ class MeteoScraper(webdriver.Chrome):
                 beaufort_all = beaufort_element.get_attribute("innerHTML").strip()
                 beaufort_all = beaufort_all.split(" ")
                 beaufort = beaufort_all[0]
+                beaufort = int(beaufort)
                 beaufort_unit = beaufort_all[-1]
 
                 humidity_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'ygrasia')]")
                 humidity = humidity_element.get_attribute("innerHTML").split(":")[-1].strip()
                 humidity = humidity.split("%")[0]
+                humidity = int(humidity)
                 humidity_unit = "%"
 
                 pressure_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'piesi')]")
                 pressure_unit_element = self.find_element("xpath", "//div[contains(@class, 'livepanel')]//div[contains(@class, 'piesi')]/span")
                 pressure = pressure_element.get_attribute("innerHTML").split("<")[0].strip().split(":")[-1].strip()
+                pressure = int(pressure)
                 pressure_unit = pressure_unit_element.get_attribute("innerHTML").split(";")[-1]
 
                 highest_daily_temperature_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[0]
                 highest_daily_temperature_all = highest_daily_temperature_element.get_attribute("innerHTML").split(" ")[-1].split(">")[-2].split("<")[0].strip()
                 highest_daily_temperature_all = highest_daily_temperature_all.split("°")
                 highest_daily_temperature = highest_daily_temperature_all[0]
+                highest_daily_temperature = float(highest_daily_temperature)
                 highest_daily_temperature_unit = highest_daily_temperature_all[-1]
 
                 lowest_daily_temperature_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[1]
                 lowest_daily_temperature_all = lowest_daily_temperature_element.get_attribute("innerHTML").split(" ")[-1].split(">")[-2].split("<")[0].strip()
                 lowest_daily_temperature_all = lowest_daily_temperature_all.split("°")
                 lowest_daily_temperature = lowest_daily_temperature_all[0]
+                lowest_daily_temperature = float(lowest_daily_temperature)
                 lowest_daily_temperature_unit = lowest_daily_temperature_all[-1]
 
                 daily_rain_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[2]
                 daily_rain = daily_rain_element.get_attribute("innerHTML").split("<")[0].split("\n")[-1].strip()
+                daily_rain = float(daily_rain)
                 daily_rain_unit = "mm"
 
                 highest_daily_gust_element = self.find_elements("xpath", "//div[contains(@class, 'dailydata')]")[3]
                 highest_daily_gust = highest_daily_gust_element.get_attribute("innerHTML").split("<span")[1].split("\n")[-1].strip()
+                highest_daily_gust = float(highest_daily_gust)
                 highest_daily_gust_unit = "km/h"
 
-                self.save_data_to_json(count, city_name, current_time, temperature, temperature_unit, wind_speed, wind_speed_unit, beaufort, beaufort_unit,
+                self.save_data_to_json(count, city_id, city_name, current_time, temperature, temperature_unit, wind_speed, wind_speed_unit, beaufort, beaufort_unit,
                                        humidity, humidity_unit, pressure, pressure_unit, highest_daily_temperature, highest_daily_temperature_unit,
                                        lowest_daily_temperature, lowest_daily_temperature_unit, daily_rain, daily_rain_unit, highest_daily_gust, highest_daily_gust_unit)
 
                 print(f"Completed: {count+1} / {MeteoScraper.total_ids}") # info
 
             except Exception:
-                continue
+                self.stations_not_working.append(city_id)
 
+        MeteoScraper.my_col.insert_one({"message": self.stations_not_working})
 
-    def save_data_to_json(self, count, city_name, current_time, temperature, temperature_unit, wind_speed, wind_speed_unit, beaufort, beaufort_unit,
+    def save_data_to_json(self, count, city_id, city_name, current_time, temperature, temperature_unit, wind_speed, wind_speed_unit, beaufort, beaufort_unit,
                             humidity, humidity_unit, pressure, pressure_unit, highest_daily_temperature, highest_daily_temperature_unit,
                             lowest_daily_temperature, lowest_daily_temperature_unit, daily_rain, daily_rain_unit, highest_daily_gust, highest_daily_gust_unit):
 
@@ -149,43 +166,118 @@ class MeteoScraper(webdriver.Chrome):
             "id": f"urn:ngsi-ld:WeatherObserved:Greece-Attica-WeatherObserved-{city_name}",
             "type": "WeatherObserved",
             "address": {
-                "addressLocality": f"{city_name}",
-                "addressCountry": "GR"
+                "type": "Property",
+                "value" : {
+                    "addressLocality": f"{city_name}",
+                    "addressCountry": "GR",
+                    "type": "PostalAddress"
+                    }
             },
-            "dataProvider": "METEO",
-            "source": "https://meteo.gr/",
-            "stationName": city_name,
+            "dataProvider": {
+                "type": "Property",
+                "value": "METEO"
+            },
+            "source": {
+                "type": "Property",
+                "value": "https://meteo.gr/"
+            },
+            "stationName": {
+                "type": "Property",
+                "value": city_name
+            },
             "location": {
-                "type": "Point",
-                "coordinates": MeteoScraper.stations_locations[count]
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": MeteoScraper.stations_locations[count]
+                }
             },
-            "dateObserved": actual_time,
-            "temperature": int(temperature),
-            "temperatureUnit": temperature_unit,
-            "windSpeed": int(wind_speed),
-            "windSpeedUnit": wind_speed_unit,
-            "beaufort": int(beaufort),
-            "beaufortUnit": beaufort_unit,
-            "humidity": int(humidity),
-            "humidityUnit": humidity_unit,
-            "atmosphericPressure": int(pressure),
-            "atmosphericPressureUnit": pressure_unit,
-            "highestDailyTemperature": float(highest_daily_temperature),
-            "highestDailyTemperatureUnit": highest_daily_temperature_unit,
-            "lowestDailyTemperature": float(lowest_daily_temperature),
-            "lowestDailyTemperatureUnit": lowest_daily_temperature_unit,
-            "precipitation": float(daily_rain),
-            "precipitationUnit": daily_rain_unit,
-            "highestDailyGust": float(highest_daily_gust),
-            "highestDailyGustUnit": highest_daily_gust_unit,
+            "dateObserved": {
+                "type": "Property",
+                "value": {
+                    "@type": "DateTime",
+                    "@value": actual_time
+                }
+            },
+            "temperature": {
+                "type": "Property",
+                "value": temperature
+            },
+            "temperatureUnit": {
+                "type": "Property",
+                "value": temperature_unit
+            },
+            "windSpeed": {
+                "type": "Property",
+                "value": wind_speed
+            },
+            "windSpeedUnit": {
+                "type": "Property",
+                "value": wind_speed_unit
+            },
+            "beaufort": {
+                "type": "Property",
+                "value": beaufort
+            },
+            "beaufortUnit": {
+                "type": "Property",
+                "value": beaufort_unit
+            },
+            "humidity": {
+                "type": "Property",
+                "value": humidity
+            },
+            "humidityUnit": {
+                "type": "Property",
+                "value": humidity_unit
+            },
+            "atmosphericPressure": {
+                "type": "Property",
+                "value": pressure
+            },
+            "atmosphericPressureUnit": {
+                "type": "Property",
+                "value": pressure_unit
+            },
+            "highestDailyTemperature": {
+                "type": "Property",
+                "value": highest_daily_temperature
+            },
+            "highestDailyTemperatureUnit": {
+                "type": "Property",
+                "value": highest_daily_temperature_unit
+            },
+            "lowestDailyTemperature": {
+                "type": "Property",
+                "value": lowest_daily_temperature
+            },
+            "lowestDailyTemperatureUnit": {
+                "type": "Property",
+                "value": lowest_daily_temperature_unit
+            },
+            "precipitation": {
+                "type": "Property",
+                "value": daily_rain
+            },
+            "precipitationUnit": {
+                "type": "Property",
+                "value": daily_rain_unit
+            },
+            "highestDailyGust": {
+                "type": "Property",
+                "value": highest_daily_gust
+            },
+            "highestDailyGustUnit": {
+                "type": "Property",
+                "value": highest_daily_gust_unit
+            },
             "@context": [
-                "iudx:EnvWeather",
                 "https://smart-data-models.github.io/dataModel.Weather/context.jsonld",
                 "https://raw.githubusercontent.com/smart-data-models/dataModel.Weather/master/context.jsonld"
             ]
         }
 
-        jsonData = json.dumps(jsonData, indent=4)
+        payload = json.dumps(jsonData, indent=4)
 
         current_directory = os.getcwd()
         new_directory = os.path.join(current_directory, "output")
@@ -193,8 +285,17 @@ class MeteoScraper(webdriver.Chrome):
         if not os.path.exists(new_directory):
             os.makedirs(new_directory)
 
-        file_path = os.path.join(new_directory, f"output_{str(count)}.json")
+        file_path = os.path.join(new_directory, f"output_id_{city_id}.json")
 
         with open(file_path, "w") as f:
-            f.write(jsonData)
+            f.write(payload)
             f.write("\n")
+
+        response = requests.post(url="http://localhost:1026/ngsi-ld/v1/entities", headers={
+            "content-type": "application/ld+json"}, data=payload)
+
+        if str(response.status_code) == "409":
+            response = requests.delete(url=f"http://localhost:1026/ngsi-ld/v1/entities/{jsonData['id']}")
+
+        response = requests.post(url="http://localhost:1026/ngsi-ld/v1/entities", headers={
+            "content-type": "application/ld+json"}, data=payload)
