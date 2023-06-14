@@ -1,0 +1,4 @@
+from mongo_read_for_contour_maps.read_mongo import OrionDataManipulation
+
+orionDataManipulation = OrionDataManipulation()
+orionDataManipulation.create_json_from_orion_data()
