@@ -55,7 +55,7 @@ class MeteoScraper(webdriver.Chrome):
         self.current_datetime = datetime.now().strftime("%Y-%m-%dT")
         # service = Service(ChromeDriverManager().install())
         options = Options()
-        options.add_experimental_option("detach", True)  # this leaves the browser open even after the python script is finished
+        # options.add_experimental_option("detach", True)  # this leaves the browser open even after the python script is finished
 
         # these arguments make the browser run on the background
         options.add_argument("--headless")  # Enable headless mode
