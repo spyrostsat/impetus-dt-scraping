@@ -296,5 +296,5 @@ class MeteoScraper(webdriver.Chrome):
         if str(response.status_code) == "409":
             response = requests.delete(url=f"http://localhost:1026/ngsi-ld/v1/entities/{jsonData['id']}")
 
-        response = requests.post(url="http://localhost:1026/ngsi-ld/v1/entities", headers={
-            "content-type": "application/ld+json"}, data=payload)
+            response = requests.post(url="http://localhost:1026/ngsi-ld/v1/entities", headers={
+                "content-type": "application/ld+json"}, data=payload)
