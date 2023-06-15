@@ -19,6 +19,7 @@ class OrionDataManipulation:
         self.my_db = self.my_client["impetus-dev"]
         self.my_col = self.my_db["featurecollections"]
 
+        self.my_col.delete_many({}) # first we clear the whole meteo collection from old data and then we re-occupy it with the new data from all the stations
 
     def create_json_from_orion_data(self):
         for i in range(0, len(self.useful_attrs_names), 2):
@@ -64,8 +65,4 @@ class OrionDataManipulation:
                 "id": self.short_useful_attrs_names[i]
             }
 
-            pprint(final_json)
-
             self.my_col.insert_one(final_json)
-
-            print("\n\n========================\n\n")
