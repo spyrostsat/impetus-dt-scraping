@@ -2,6 +2,7 @@ from pprint import pprint
 from mongo_read_for_contour_maps.constants import *
 from copy import deepcopy
 import requests
+import pymongo
 
 
 class OrionDataManipulation:
@@ -14,53 +15,57 @@ class OrionDataManipulation:
 
         self.short_useful_attrs_names = deepcopy(short_useful_attrs_names)
 
+        self.my_client = pymongo.MongoClient("mongodb://localhost:27017/")
+        self.my_db = self.my_client["impetus-dev"]
+        self.my_col = self.my_db["featurecollections"]
+
 
     def create_json_from_orion_data(self):
-        for i in range(3, len(self.useful_attrs_names)):
+        for i in range(0, len(self.useful_attrs_names), 2):
             params = {
                 'type': 'https://smartdatamodels.org/dataModel.Weather/WeatherObserved',
-                'attrs': f'{self.useful_attrs_names[i]},location'
+                'attrs': f'{self.useful_attrs_names[i]},{self.useful_attrs_names[i+1]},{self.all_attrs_names[3]},{self.all_attrs_names[4]},{self.all_attrs_names[5]}',
+                'limit': 100
             }
 
             response = requests.get(self.url, params=params)
             response_json = response.json()
 
-            if "https://smartdatamodels.org/dataModel.Weather" in self.useful_attrs_names[i]:
-                for resp in response_json:
-                    new_json = {
-                                  "type": "FeatureCollection",
-                                  "features": [
-                                    {
-                                      "type": "Feature",
-                                      "properties": {
-                                        self.short_useful_attrs_names[i]: resp[self.useful_attrs_names[i]]["value"]
-                                      },
-                                      "geometry": {
-                                        "type": "Point",
-                                        "coordinates": resp["location"]["value"]["coordinates"]
-                                      }
-                                    }
-                                  ]
-                                }
-                    pprint(new_json)
-                    print("\n")
+            all_stations_json = []
 
-            else:
-                for resp in response_json:
-                    new_json = {
-                                  "type": "FeatureCollection",
-                                  "features": [
-                                    {
-                                      "type": "Feature",
-                                      "properties": {
-                                        self.short_useful_attrs_names[i]: resp[self.short_useful_attrs_names[i]]["value"]
-                                      },
-                                      "geometry": {
-                                        "type": "Point",
-                                        "coordinates": resp["location"]["value"]["coordinates"]
-                                      }
-                                    }
-                                  ]
-                                }
-                    pprint(new_json)
-                    print("\n")
+            for resp in response_json:
+                if "https://smartdatamodels.org/dataModel.Weather" in self.useful_attrs_names[i]:
+                    measurement_value = resp[self.useful_attrs_names[i]]["value"]
+                else:
+                    measurement_value = resp[self.short_useful_attrs_names[i]]["value"]
+
+                new_station_json = {
+                    "type": "Feature",
+                    "properties": {
+                        self.short_useful_attrs_names[i]: measurement_value,
+                        "stationName": resp["stationName"]["value"]
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": resp["location"]["value"]["coordinates"]
+                    }
+                }
+
+                all_stations_json.append(new_station_json)
+
+            final_json = {
+                "type": "FeatureCollection",
+                "features": all_stations_json,
+                "properties": {
+                    "FeatureName": self.short_useful_attrs_names[i],
+                    "FeatureUnit": response_json[0][self.short_useful_attrs_names[i+1]]["value"],
+                    "TimeOfObservation": response_json[0][self.all_attrs_names[5]]["value"]["@value"]
+                },
+                "id": self.short_useful_attrs_names[i]
+            }
+
+            pprint(final_json)
+
+            self.my_col.insert_one(final_json)
+
+            print("\n\n========================\n\n")

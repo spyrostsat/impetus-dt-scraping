@@ -68,6 +68,7 @@ class MeteoScraper(webdriver.Chrome):
 
     def scrap_attica(self):
         for count, city_id in enumerate(MeteoScraper.ids):
+            city_name = None
             try:
                 url_to_scrap = MeteoScraper.url_first_part + city_id
                 self.get(url_to_scrap)
@@ -152,6 +153,7 @@ class MeteoScraper(webdriver.Chrome):
 
             except Exception:
                 self.stations_not_working.append(city_id)
+                response = requests.delete(url=f"http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:WeatherObserved:Greece-Attica-WeatherObserved-{city_name}")
 
         MeteoScraper.my_col.insert_one({"message": self.stations_not_working})
 
