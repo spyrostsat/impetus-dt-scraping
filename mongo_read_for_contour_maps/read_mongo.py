@@ -15,11 +15,13 @@ class OrionDataManipulation:
 
         self.short_useful_attrs_names = deepcopy(short_useful_attrs_names)
 
-        self.my_client = pymongo.MongoClient("mongodb://localhost:27017/")
+        self.my_client = pymongo.MongoClient("mongodb://localhost:27027/")
         self.my_db = self.my_client["impetus-dev"]
         self.my_col = self.my_db["featurecollections"]
 
-        self.my_col.delete_many({}) # first we clear the whole meteo collection from old data and then we re-occupy it with the new data from all the stations
+        # Christodoulos commented one line and added the following delete_many
+        # self.my_col.delete_many({}) # first we clear the whole meteo collection from old data and then we re-occupy it with the new data from all the stations
+        result = self.my_col.delete_many({'id': {'$in': ['temperature', 'windSpeed', 'beaufort', 'humidity', 'atmosphericPressure', 'highestDailyTemperature', 'lowestDailyTemperature', 'precipitation', 'highestDailyGust']}})
 
     def create_json_from_orion_data(self):
         for i in range(0, len(self.useful_attrs_names), 2):
