@@ -80,7 +80,7 @@ for doc in all_docs:
     daily_rain = doc['today_s_rain']['value']
     daily_rain_unit = doc['today_s_rain']['unit']
 
-    highest_daily_gust = "Not scraped yet"
+    highest_daily_gust = "-"
     highest_daily_gust_unit = "km/h"
 
     jsonData = {
