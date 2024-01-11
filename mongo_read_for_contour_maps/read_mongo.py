@@ -75,5 +75,6 @@ class OrionDataManipulation:
             json_post = deepcopy(json_common)
             json_post["name"] = self.short_useful_attrs_names[i]
             
-            requests.post('http://localhost:5000/heatmaps', json=json_post)
+            response = requests.post(f'http://localhost:5000/heatmap/{json_post["name"]}', json=json_post)
+            print(response.status_code)
             
