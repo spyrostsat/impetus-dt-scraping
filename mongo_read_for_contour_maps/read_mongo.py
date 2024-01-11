@@ -15,7 +15,7 @@ class OrionDataManipulation:
 
         self.short_useful_attrs_names = deepcopy(short_useful_attrs_names)
 
-        self.my_client = pymongo.MongoClient("mongodb://localhost:27027/")
+        self.my_client = pymongo.MongoClient("mongodb://localhost:27017/")
         self.my_db = self.my_client["impetus-dev"]
         self.my_col = self.my_db["featurecollections"]
 
@@ -56,7 +56,7 @@ class OrionDataManipulation:
 
                 all_stations_json.append(new_station_json)
 
-            final_json = {
+            json_common = {
                 "type": "FeatureCollection",
                 "features": all_stations_json,
                 "properties": {
@@ -64,7 +64,16 @@ class OrionDataManipulation:
                     "FeatureUnit": response_json[0][self.short_useful_attrs_names[i+1]]["value"],
                     "TimeOfObservation": response_json[0][self.all_attrs_names[5]]["value"]["@value"]
                 },
-                "id": self.short_useful_attrs_names[i]
             }
 
+			# This json is created to maintain the old database structure (featurecollections)
+            final_json = deepcopy(json_common)
+            final_json["id"] = self.short_useful_attrs_names[i]
             self.my_col.insert_one(final_json)
+            
+            # This json will make a post request to handle the database storage in the backend
+            json_post = deepcopy(json_common)
+            json_post["name"] = self.short_useful_attrs_names[i]
+            
+            requests.post('http://localhost:5000/heatmaps', json=json_post)
+            
